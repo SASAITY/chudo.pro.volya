@@ -1,0 +1,11 @@
+export const CONFIG=Object.freeze({stepUnits:.8,storageKey:'dlit-volyu:v2',legacyKey:'dlit-volyu:v1'});
+export const TARGETS=['Бесконечность','Солнце','Вулкан','Меркурий','Венера','Земля','Луна','Марс','Юпитер','Сатурн','Уран','Нептун','Своя цель'];
+export const RAY_COLORS=[['#ff6f91','Розовый'],['#ffa35c','Оранжевый'],['#f6d76d','Золотой'],['#72d9a1','Зелёный'],['#6cdbef','Голубой'],['#799aff','Синий'],['#ba94fa','Фиолетовый']];
+export const PLANET_NAMES=TARGETS.filter(t=>!['Бесконечность','Своя цель'].includes(t));
+export const duration=(act,now=Date.now())=>Math.max(0,((act.endedAt??now)-act.startedAt)/1000);
+export const beamLengthForActs=count=>Math.max(0,Math.floor(count))*CONFIG.stepUnits;
+export const formatTime=seconds=>{const s=Math.max(0,Math.floor(seconds));return Math.floor(s/86400)+' д · '+[Math.floor(s/3600)%24,Math.floor(s/60)%60,s%60].map(n=>String(n).padStart(2,'0')).join(':')};
+export function validateActs(raw){return Array.isArray(raw)?raw.filter(a=>a&&typeof a.id==='string'&&typeof a.text==='string'&&a.text.trim()&&a.text.length<=500&&Number.isFinite(a.startedAt)&&a.startedAt>0&&(a.endedAt===null||Number.isFinite(a.endedAt)&&a.endedAt>=a.startedAt)).map(({beamLengthKm,...a})=>a):[];}
+export function normalizeState(raw,legacy=[]){const acts=validateActs(raw?.acts??legacy);const rays=Array.isArray(raw?.rays)?raw.rays.filter(r=>r&&typeof r.id==='string'&&typeof r.name==='string'&&TARGETS.includes(r.target)).map(r=>({...r,color:RAY_COLORS.some(([hex])=>hex===r.color)?r.color:RAY_COLORS[6][0],goal:typeof r.goal==='string'?r.goal.slice(0,300):''})):[];const goals=Array.isArray(raw?.goals)?raw.goals.filter(g=>g&&typeof g.id==='string'&&typeof g.text==='string'&&g.text.length<=500&&TARGETS.includes(g.planet)&&Number.isFinite(g.createdAt)):[];if(acts.some(a=>!rays.some(r=>r.id===a.rayId))){let ray=rays.find(r=>r.id==='legacy-ray');if(!ray){ray={id:'legacy-ray',name:'Воля',target:'Бесконечность',color:RAY_COLORS[6][0],goal:'',createdAt:acts.at(-1).startedAt};rays.push(ray);}acts.forEach(a=>{if(!rays.some(r=>r.id===a.rayId))a.rayId=ray.id;});}if(rays[0]&&['Первый луч','Луч 1'].includes(rays[0].name))rays[0].name='Воля';return{version:2,acts,rays,goals};}
+
+export const willGrowth=steps=>Math.min(7,Math.max(0,Number(steps)||0))/7;

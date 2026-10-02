@@ -1,0 +1,11 @@
+import {build} from 'esbuild';
+import {mkdir,readFile,writeFile,rm,copyFile} from 'node:fs/promises';
+await rm('dist',{recursive:true,force:true});await mkdir('dist/assets',{recursive:true});
+const js=await build({entryPoints:['app.js'],bundle:true,minify:true,format:'esm',target:['es2022'],entryNames:'app-[hash]',outdir:'dist/assets',metafile:true,legalComments:'eof'});
+const css=await build({entryPoints:['public/style.css'],minify:true,entryNames:'style-[hash]',outdir:'dist/assets',metafile:true});
+const script=Object.keys(js.metafile.outputs).find(p=>p.endsWith('.js')).replace('dist','');
+const style=Object.keys(css.metafile.outputs).find(p=>p.endsWith('.css')).replace('dist','');
+let html=await readFile('public/index.html','utf8');
+html=html.replace(/\/app\.js\?v=\d+/g,script).replace(/\/style\.css\?v=\d+/g,style);
+await writeFile('dist/index.html',html);await copyFile('THREE-LICENSE.txt','dist/THREE-LICENSE.txt');
+console.log('Built static application with fingerprinted assets.');
